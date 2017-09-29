@@ -1,6 +1,7 @@
 #include "neuralnetwork.h"
 
 #define _GNU_SOURCE
+#include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
@@ -10,7 +11,7 @@
 
 #define NEURON_PARALLEL 0
 #define NEURON_N_THREADS 8
-#define LAYER_PARALLEL 1
+#define LAYER_PARALLEL 0
 #define LAYER_N_THREADS 8
 
 #define INIT_MAX 1.0
@@ -21,7 +22,6 @@
 Neuron * new_neuron(nn_size_t n_dim, nn_float_t (*actv)(nn_float_t))
 {
 	Neuron * neuron = (Neuron*) malloc(sizeof(Neuron));
-	
 	neuron->actv = actv;
 	neuron->n_dim = n_dim;
 	
@@ -45,7 +45,6 @@ void delete_neuron(Neuron * neuron)
 nn_float_t neuron_forward(Neuron * neuron, nn_float_t * input)
 {
 	nn_float_t net = 0.0;
-
 	#if NEURON_PARALLEL
 		#pragma omp parallel num_threads(NEURON_N_THREADS)
 		{
@@ -73,38 +72,103 @@ nn_float_t neuron_forward(Neuron * neuron, nn_float_t * input)
 	return neuron->actv(net);
 }
 
-
-
-Layer * new_layer()
+void print_neuron(Neuron * neuron)
 {
-	return NULL;
+	int i;
+	for (i=0; i<neuron->n_dim; i++) printf("Weight[%d] = %f\n", i, neuron->weights[i]);
+	printf("Beta = %f\n", neuron->weights[neuron->n_dim]);
+}
+
+
+
+Layer * new_layer(nn_size_t n_neurons, nn_size_t in_size, nn_float_t (*actv)(nn_float_t))
+{
+	Layer * layer = (Layer*) malloc(sizeof(Layer));
+	layer->n_neurons = n_neurons;
+	layer->in_size = in_size;
+	layer->actv = actv;
+
+	layer->neurons = (Neuron**) malloc(n_neurons*sizeof(Neuron*));
+	int i;
+	for (i=0; i<layer->n_neurons; i++) layer->neurons[i] = new_neuron(in_size, actv);
+
+	return layer;
 }
 
 void delete_layer(Layer * layer)
 {
-
+	int i;
+	for (i=0; i<layer->n_neurons; i++) delete_neuron(layer->neurons[i]);
+	free(layer->neurons);
+	free(layer);
 }
 
-nn_float_t * layer_forward(Layer * layer)
+nn_float_t * layer_forward(Layer * layer, nn_float_t * input)
 {
-	return NULL;
+	nn_float_t * output = (nn_float_t*) malloc(layer->n_neurons*sizeof(nn_float_t));
+
+	int i;
+	#if LAYER_PARALLEL
+		#pragma omp parallel for private(i) num_threads(LAYER_N_THREADS)
+	#endif
+	for(i=0; i<layer->n_neurons; i++) output[i] = neuron_forward(layer->neurons[i], input);
+
+	return output;
+}
+
+void print_layer(Layer * layer)
+{
+	int i;
+	for (i=0; i<layer->n_neurons; i++){
+		printf("---Neuron[%d]---\n", i);
+		print_neuron(layer->neurons[i]);
+	}
 }
 
 
 
-Network * new_network()
+Network * new_network(nn_size_t n_layers, nn_size_t * layers_sizes, nn_float_t (**layers_actvs)(nn_float_t), nn_size_t in_size)
 {
-	return NULL;
+	Network * network = (Network*) malloc(sizeof(Network));
+	network->n_layers = n_layers;
+	network->in_size = in_size;
+
+	network->layers = (Layer**) malloc(network->n_layers*sizeof(Layer*));
+	int i;
+	network->layers[0] = new_layer(layers_sizes[0], network->in_size, layers_actvs[0]);
+	for (i=1; i<network->n_layers; i++) network->layers[i] = new_layer(layers_sizes[i], network->layers[i-1]->n_neurons, layers_actvs[i]);
+
+	return network;
 }
 
 void delete_network(Network * network)
 {
-
+	int i;
+	for (i=0; i<network->n_layers; i++) delete_layer(network->layers[i]);
+	free(network->layers);
+	free(network);
 }
 
-nn_float_t * network_forward(Network * network)
+nn_float_t * network_forward(Network * network, nn_float_t * in)
 {
-	return NULL;
+	int i;
+	nn_float_t * cur_vect = layer_forward(network->layers[0], in), * next_vect;
+	for (i=1; i<network->n_layers; i++){
+		next_vect = layer_forward(network->layers[i], cur_vect);
+		free(cur_vect);
+		cur_vect = next_vect;
+	}
+
+	return next_vect;
+}
+
+void print_network(Network * network)
+{
+	int i;
+	for (i=0; i<network->n_layers; i++){
+		printf("------Layer[%d]------\n", i);
+		print_layer(network->layers[i]);
+	}
 }
 
 

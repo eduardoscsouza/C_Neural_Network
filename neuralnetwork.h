@@ -16,14 +16,14 @@ typedef struct Neuron
 typedef struct Layer
 {
 	nn_size_t n_neurons, in_size;
-	Neuron * neurons;
+	Neuron ** neurons;
 	nn_float_t (*actv)(nn_float_t);
 }Layer;
 
 typedef struct Network
 {
 	nn_size_t n_layers, in_size;
-	Layer * layers;
+	Layer ** layers;
 }Network;
 
 
@@ -31,14 +31,17 @@ typedef struct Network
 Neuron * new_neuron(nn_size_t, nn_float_t (*)(nn_float_t));
 void delete_neuron(Neuron *);
 nn_float_t neuron_forward(Neuron *, nn_float_t *);
+void print_neuron(Neuron *);
 
-Layer * new_layer();
+Layer * new_layer(nn_size_t, nn_size_t, nn_float_t (*)(nn_float_t));
 void delete_layer(Layer *);
-nn_float_t * layer_forward(Layer *);
+nn_float_t * layer_forward(Layer *, nn_float_t *);
+void print_layer(Layer *);
 
-Network * new_network();
+Network * new_network(nn_size_t, nn_size_t *, nn_float_t (**)(nn_float_t), nn_size_t);
 void delete_network(Network *);
-nn_float_t * network_forward(Network *);
+nn_float_t * network_forward(Network *, nn_float_t *);
+void print_network(Network *);
 
 
 
