@@ -11,7 +11,7 @@
 
 #define NEURON_PARALLEL 0
 #define NEURON_N_THREADS 8
-#define LAYER_PARALLEL 0
+#define LAYER_PARALLEL 1
 #define LAYER_N_THREADS 8
 
 #define INIT_MAX 1.0
