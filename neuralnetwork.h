@@ -26,17 +26,19 @@ typedef struct Network
 	Layer * layers;
 }Network;
 
+
+
 Neuron * new_neuron();
 void delete_neuron(Neuron *);
-nn_float_t actv_neuron(Neuron *);
+nn_float_t neuron_forward(Neuron *);
 
 Layer * new_layer();
 void delete_layer(Layer *);
-nn_float_t * actv_layer(Layer *);
+nn_float_t * layer_forward(Layer *);
 
 Network * new_network();
 void delete_network(Network *);
-nn_float_t * actv_network(Network *);
+nn_float_t * network_forward(Network *);
 
 
 
