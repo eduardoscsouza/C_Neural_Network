@@ -1,9 +1,13 @@
-#include <neuralnetwork.h>
+#include "neuralnetwork.h"
 
 #include <stdlib.h>
 #include <omp.h>
+#include <math.h>
 
-#define N_THREADS 8
+#define NEURON_PARALLEL 1
+#define NEURON_N_THREADS 8
+#define LAYER_PARALLEL 1
+#define LAYER_N_THREADS 8
 
 #define INIT_MAX 0.5
 #define INIT_MIN -0.5
@@ -18,7 +22,7 @@ Neuron * new_neuron(nn_size_t n_dim, nn_float_t (*actv)(nn_float_t))
 	neuron->n_dim = n_dim;
 	neuron->weights = (nn_float_t*) malloc((n_dim+1) *  sizeof(nn_float_t));
 	nn_size_t i;
-	for (i=0; i<n_dim+1; i++) neuron->weights[i] = ((rand() / RAND_MAX)*(INIT_MAX-INIT_MIN)) - INIT_MIN;
+	for (i=0; i<n_dim+1; i++) neuron->weights[i] = ((rand() / (nn_float_t)RAND_MAX)*(INIT_MAX-INIT_MIN)) + INIT_MIN;
 
 	return neuron;
 }
@@ -31,24 +35,94 @@ void delete_neuron(Neuron * neuron)
 
 nn_float_t neuron_forward(Neuron * neuron, nn_float_t * input)
 {
-	nn_float_t output = 0.0;
+	nn_float_t net = 0.0;
 
-	nn_size_t block_size = neuron->n_dim/N_THREADS;
-	omp_set_num_threads(N_THREADS);
-	#pragma omp parallel
-	{
-		int id = omp_get_thread_num();
-		nn_size_t lower_bound = block_size*id, upper_bound = block_size*(id+1);
-		if (id == omp_get_max_threads()-1) upper_bound = neuron->n_dim;
+	#if NEURON_PARALLEL
+		#pragma omp parallel num_threads(NEURON_N_THREADS)
+		{
+			int id = omp_get_thread_num();
+			nn_size_t block_size = neuron->n_dim/omp_get_num_threads(), lower_bound = block_size*id, upper_bound = block_size*(id+1);
+			if (id == omp_get_max_threads()-1) upper_bound = neuron->n_dim;
 
-		nn_float_t aux;
-		nn_size_t i;
-		for(i=lower_bound; i<upper_bound; i++){
-			aux = neuron->weights[i] * input[i];
-			#pragma omp critical(neuron_sum)
-			{
-				output += aux;
+			nn_float_t aux;
+			nn_size_t i;
+			for(i=lower_bound; i<upper_bound; i++){
+				aux = neuron->weights[i] * input[i];
+				#pragma omp critical(neuron_sum)
+				{
+					net += aux;
+				}
 			}
 		}
-	}
+		net += neuron->weights[neuron->n_dim];
+	#else
+		nn_size_t i;
+		for (i=0; i<neuron->n_dim; i++) net += neuron->weights[i] * input[i];
+		net += neuron->weights[neuron->n_dim];
+	#endif
+
+	return neuron->actv(net);
+}
+
+
+
+Layer * new_layer()
+{
+	return NULL;
+}
+
+void delete_layer(Layer * layer)
+{
+
+}
+
+nn_float_t * layer_forward(Layer * layer)
+{
+	return NULL;
+}
+
+
+
+Network * new_network()
+{
+	return NULL;
+}
+
+void delete_network(Network * network)
+{
+
+}
+
+nn_float_t * network_forward(Network * network)
+{
+	return NULL;
+}
+
+
+
+nn_float_t relu(nn_float_t net)
+{
+	if (net>=0.0) return net;
+	else return 0.0;
+}
+
+nn_float_t soft_relu(nn_float_t net)
+{
+	return log(1.0 + exp(net));
+}
+
+nn_float_t step(nn_float_t net)
+{
+	if (net>=0.0) return 1.0;
+	else return 0.0;
+}
+
+nn_float_t sigm(nn_float_t net)
+{
+	return 1.0/(1.0 + exp(-net));
+}
+
+nn_float_t linear(nn_float_t net)
+{
+	return net;
 }

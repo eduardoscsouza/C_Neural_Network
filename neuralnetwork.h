@@ -28,9 +28,9 @@ typedef struct Network
 
 
 
-Neuron * new_neuron();
+Neuron * new_neuron(nn_size_t, nn_float_t (*)(nn_float_t));
 void delete_neuron(Neuron *);
-nn_float_t neuron_forward(Neuron *);
+nn_float_t neuron_forward(Neuron *, nn_float_t *);
 
 Layer * new_layer();
 void delete_layer(Layer *);
@@ -39,6 +39,14 @@ nn_float_t * layer_forward(Layer *);
 Network * new_network();
 void delete_network(Network *);
 nn_float_t * network_forward(Network *);
+
+
+
+nn_float_t relu(nn_float_t);
+nn_float_t soft_relu(nn_float_t);
+nn_float_t step(nn_float_t);
+nn_float_t sigm(nn_float_t);
+nn_float_t linear(nn_float_t);
 
 
 
