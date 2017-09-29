@@ -1,16 +1,20 @@
 #include "neuralnetwork.h"
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <limits.h>
 
-#define NEURON_PARALLEL 1
+#define NEURON_PARALLEL 0
 #define NEURON_N_THREADS 8
 #define LAYER_PARALLEL 1
 #define LAYER_N_THREADS 8
 
-#define INIT_MAX 0.5
-#define INIT_MIN -0.5
+#define INIT_MAX 1.0
+#define INIT_MIN -1.0
 
 
 
@@ -20,9 +24,14 @@ Neuron * new_neuron(nn_size_t n_dim, nn_float_t (*actv)(nn_float_t))
 	
 	neuron->actv = actv;
 	neuron->n_dim = n_dim;
-	neuron->weights = (nn_float_t*) malloc((n_dim+1) *  sizeof(nn_float_t));
+	
+	neuron->weights = (nn_float_t*) malloc((n_dim+1) * sizeof(nn_float_t));
+	unsigned long long aux_rand;
 	nn_size_t i;
-	for (i=0; i<n_dim+1; i++) neuron->weights[i] = ((rand() / (nn_float_t)RAND_MAX)*(INIT_MAX-INIT_MIN)) + INIT_MIN;
+	for (i=0; i<n_dim+1; i++){
+		syscall(SYS_getrandom, &aux_rand, sizeof(aux_rand), 0);
+		neuron->weights[i] = ((aux_rand / (nn_float_t)ULLONG_MAX)*(INIT_MAX-INIT_MIN)) + INIT_MIN;
+	}
 
 	return neuron;
 }

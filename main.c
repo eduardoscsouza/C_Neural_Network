@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "neuralnetwork.h"
 
@@ -13,6 +14,7 @@ int main(int argc, char * argv[])
 	Neuron * neuron = new_neuron(TEST_N_DIM, &linear);
 	nn_float_t * in = (nn_float_t*) malloc(neuron->n_dim*sizeof(nn_float_t));
 	int i;
+	srand(time(NULL));
 	for (i=0; i<neuron->n_dim; i++) in[i] = rand() / (nn_float_t)RAND_MAX;
 	
 	for(i=0; i<neuron->n_dim+1; i++) printf("%f ", neuron->weights[i]);
@@ -24,7 +26,6 @@ int main(int argc, char * argv[])
 	printf("%f\n%f\n\n", net, sigm(net));
 	delete_neuron(neuron);
 	free(in);
-
 
 	return 0;
 }
